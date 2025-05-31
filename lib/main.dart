@@ -1,4 +1,8 @@
+import 'dart:convert';
+
+import 'rastreo.dart';
 import 'package:flutter/material.dart';
+import 'api.dart';
 
 void main() {
   runApp(const MyApp());
@@ -12,12 +16,10 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     Color colorDHL = const Color(0xFFFFCC00);
     return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-
-        colorScheme: ColorScheme.fromSeed(seedColor: colorDHL),
+      title: 'DHL',
+      home: const MyHomePage(
+        title: 'DHL',
       ),
-      home: const MyHomePage(title: 'DHL'), //Necesito poner estas letras color rojo
     );
   }
 }
@@ -31,36 +33,72 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
-    setState(() {
-      _counter++;
-    });
-  }
+  final TextEditingController _folioController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
     Color colorDHL = const Color(0xFFFFCC00);
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: colorDHL,
-        title: Text(widget.title),
-      ),
+      appBar: AppBar(backgroundColor: colorDHL, title: Text(widget.title)),
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text('Rastrear envio:'),
-            TextField(cursorColor: Colors.white, decoration: InputDecoration(hintText: 'Folio'),)
-          ],
+        child: Padding(
+          padding: const EdgeInsets.all(25.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.start, // <-- alineado arriba
+            children: <Widget>[
+              // Imagen arriba
+              SizedBox(
+                height: 100,
+                child: Image.asset(
+                  'assets/images/dhl_logo.png',
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) {
+                    return const Text('No se pudo cargar la imagen');
+                  },
+                ),
+              ),
+
+              const SizedBox(height: 40), // espacio entre imagen y texto
+
+              const Text('Rastrear envío:', style: TextStyle(fontSize: 18)),
+
+              const SizedBox(height: 10),
+
+              TextField(
+                controller: _folioController,
+                cursorColor: Colors.white,
+                decoration: const InputDecoration(hintText: 'Folio'),
+              ),
+            ],
+          ),
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: null,
-        tooltip: 'Buscar envio',
+        onPressed: () async {
+          var data = {'folio': _folioController.text};
+
+          var res = await CallApi().postData(data, 'rastreo');
+          var body = json.decode(res.body);
+
+          if (body['data'] != null) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ResultadoRastreoPage(data: body['data'], folio: _folioController.text),
+              ),
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text("No se encontró información del envío"),
+              ),
+            );
+          }
+        },
+        tooltip: 'Buscar envío',
         child: const Icon(Icons.search),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+      ),
     );
   }
 }
